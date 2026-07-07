@@ -3,7 +3,8 @@ import { motion } from "framer-motion";
 import LiquidEther from "./LiquidEther/LiquidEther";
 
 // Stable color identity (array identity must not change or LiquidEther re-inits).
-const COLORS = ["#ff3b30", "#7c3aed", "#2563eb", "#22d3ee"];
+// White-only palette — premium "liquid glass" ambience, kept extremely subtle.
+const COLORS = ["#ffffff", "#ffffff", "#ffffff"];
 
 // ---------------------------------------------------------------------------
 // Capability detection
