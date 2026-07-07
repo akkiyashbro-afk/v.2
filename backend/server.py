@@ -13,7 +13,7 @@ from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
 
-import resend
+import httpx
 
 
 ROOT_DIR = Path(__file__).parent
@@ -30,14 +30,14 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Resend setup
-RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+# Email setup — Emergent managed email proxy.
+# EMAIL_BASE_URL is a hardcoded constant (survives deployment); never read from env.
+EMAIL_BASE_URL = "https://integrations.emergentagent.com"
+EMERGENT_EMAIL_KEY = os.environ.get('EMERGENT_EMAIL_KEY', '')
+EMAIL_FROM_NAME = os.environ.get('EMAIL_FROM_NAME', 'WinsAble')
 RECOVERY_APPEAL_RECIPIENT = os.environ.get(
     'RECOVERY_APPEAL_RECIPIENT', 'aakashpalzone@gmail.com'
 )
-if RESEND_API_KEY:
-    resend.api_key = RESEND_API_KEY
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -188,10 +188,10 @@ async def submit_recovery_appeal(
     if missing:
         raise HTTPException(status_code=422, detail=f"Missing fields: {', '.join(missing)}")
 
-    if not RESEND_API_KEY:
+    if not EMERGENT_EMAIL_KEY:
         raise HTTPException(
             status_code=500,
-            detail="Email service not configured (RESEND_API_KEY missing).",
+            detail="Email service not configured (EMERGENT_EMAIL_KEY missing).",
         )
 
     # Build attachments (base64 for Resend)
@@ -231,22 +231,34 @@ async def submit_recovery_appeal(
     safe_username = re.sub(r"[^A-Za-z0-9._@-]", "", payload["username"])[:64]
     subject = f"New Recovery Appeal - {payload['platform']} - @{safe_username}"
 
-    params = {
-        "from": SENDER_EMAIL,
+    email_payload = {
         "to": [RECOVERY_APPEAL_RECIPIENT],
-        "reply_to": payload["email"],
         "subject": subject,
         "html": _build_email_html(payload),
+        "from_name": EMAIL_FROM_NAME,
+        "contact_email": payload["email"],
     }
     if attachments:
-        params["attachments"] = attachments
+        email_payload["attachments"] = attachments
 
     try:
-        result = await asyncio.to_thread(resend.Emails.send, params)
+        async with httpx.AsyncClient(timeout=30) as http_client:
+            resp = await http_client.post(
+                f"{EMAIL_BASE_URL}/api/v1/email/send",
+                headers={"X-Email-Key": EMERGENT_EMAIL_KEY},
+                json=email_payload,
+            )
+        resp.raise_for_status()
+        result = resp.json() if resp.content else {}
         email_id = result.get("id") if isinstance(result, dict) else None
+    except httpx.HTTPStatusError as e:
+        logger.error(
+            f"Email send failed: {e.response.status_code} {e.response.text}"
+        )
+        raise HTTPException(status_code=502, detail="Email delivery failed")
     except Exception as e:
-        logger.error(f"Resend send failed: {e}")
-        raise HTTPException(status_code=502, detail=f"Email delivery failed: {e}")
+        logger.error(f"Email send error: {e}")
+        raise HTTPException(status_code=502, detail="Email delivery failed")
 
     record = RecoveryAppealRecord(
         **payload,

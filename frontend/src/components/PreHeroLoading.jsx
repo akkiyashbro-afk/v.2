@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Particles from "./Particles";
 import Aurora from "./Aurora";
@@ -8,6 +8,8 @@ import { WinsAbleMark } from "./WinsAbleMark";
 export const PreHeroLoading = ({ onComplete }) => {
   const [stage, setStage] = useState(0);
   const [visible, setVisible] = useState(true);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     const reduce = window.matchMedia(
@@ -15,7 +17,7 @@ export const PreHeroLoading = ({ onComplete }) => {
     ).matches;
     if (reduce) {
       setVisible(false);
-      onComplete && onComplete();
+      onCompleteRef.current && onCompleteRef.current();
       return;
     }
     const timers = [
@@ -26,11 +28,11 @@ export const PreHeroLoading = ({ onComplete }) => {
       setTimeout(() => setStage(5), 3500),
       setTimeout(() => {
         setVisible(false);
-        onComplete && onComplete();
+        onCompleteRef.current && onCompleteRef.current();
       }, 4300),
     ];
     return () => timers.forEach((t) => clearTimeout(t));
-  }, [onComplete]);
+  }, []);
 
   return (
     <AnimatePresence>

@@ -1,9 +1,4 @@
-import React, {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   motion,
   useInView,
@@ -11,7 +6,7 @@ import {
   useSpring,
   useTransform,
 } from "framer-motion";
-import { BadgeCheck, ArrowUpRight } from "lucide-react";
+import { BadgeCheck } from "lucide-react";
 import { recoveredProfiles } from "../data/recoveredProfiles";
 import { orbitSettings } from "../data/settings";
 import { WinsAbleMark } from "./WinsAbleMark";
@@ -43,8 +38,7 @@ const RING_DEFS = [
 
 /**
  * Auto-distribute profiles into rings based on ring counts.
- * Any profiles beyond ring1+ring2+ring3 counts are appended to the outer ring
- * so the Orbit "just works" as more profiles are added.
+ * Any profiles beyond ring1+ring2+ring3 counts are appended to the outer ring.
  */
 function distributeProfiles(profiles) {
   const capacities = RING_DEFS.map((r) => r.count);
@@ -55,7 +49,6 @@ function distributeProfiles(profiles) {
     rings[r] = profiles.slice(cursor, cursor + need);
     cursor += need;
   }
-  // Overflow → outer ring
   if (cursor < profiles.length) {
     rings[rings.length - 1] = rings[rings.length - 1].concat(
       profiles.slice(cursor)
@@ -64,46 +57,22 @@ function distributeProfiles(profiles) {
   return rings;
 }
 
-// Individual avatar. The button itself carries pointer-events so it's ALWAYS
-// clickable (parents are pointer-events-none so they don't occlude siblings).
-const Avatar = ({ profile, angle, radius, isActive, onHover, onClick }) => {
+// Individual avatar — purely visual (no interaction).
+const Avatar = ({ profile, angle, radius }) => {
   return (
-    <motion.button
-      type="button"
+    <div
       data-testid={`galaxy-profile-${profile.id}`}
-      onMouseEnter={() => onHover(profile.id)}
-      onMouseLeave={() => onHover(null)}
-      onFocus={() => onHover(profile.id)}
-      onBlur={() => onHover(null)}
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick(profile);
-      }}
-      onTouchEnd={(e) => {
-        // Ensure mobile taps register even if underlying browser fires 300ms delay
-        e.stopPropagation();
-      }}
-      aria-label={`Open recovery story for ${profile.name || profile.username}`}
-      whileHover={{ scale: 1.18 }}
-      whileTap={{ scale: 0.92 }}
-      className="absolute top-1/2 left-1/2 group focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 rounded-full"
+      aria-hidden="true"
+      className="absolute top-1/2 left-1/2 pointer-events-none"
       style={{
-        pointerEvents: "auto",
-        cursor: "pointer",
         transform: `translate(-50%, -50%) rotate(${angle}deg) translate(${radius}px) rotate(${-angle}deg)`,
         willChange: "transform",
-        // Ensure a comfortably clickable hit area regardless of avatar art size.
         padding: "6px",
-        touchAction: "manipulation",
       }}
     >
       <span className="relative block">
         <span
-          className={`relative block rounded-full overflow-hidden border transition-all duration-300 ${
-            isActive
-              ? "border-white/80 shadow-[0_0_28px_rgba(255,255,255,0.35),0_0_50px_rgba(59,130,246,0.4)]"
-              : "border-white/15 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.9)]"
-          }`}
+          className="relative block rounded-full overflow-hidden border border-white/15 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.9)]"
           style={{
             width: "clamp(40px, 4vw, 56px)",
             height: "clamp(40px, 4vw, 56px)",
@@ -128,36 +97,21 @@ const Avatar = ({ profile, angle, radius, isActive, onHover, onClick }) => {
         </span>
         {profile.verified !== false && (
           <span
-            className={`absolute -bottom-1 -right-1 rounded-full bg-[#050505] border border-white/10 p-[3px] transition-opacity ${
-              isActive ? "opacity-100" : "opacity-80"
-            }`}
+            className="absolute -bottom-1 -right-1 rounded-full bg-[#050505] border border-white/10 p-[3px] opacity-80"
             data-testid="galaxy-verified-badge"
           >
-            <BadgeCheck
-              className="h-3 w-3 text-white/90"
-              strokeWidth={2.5}
-            />
+            <BadgeCheck className="h-3 w-3 text-white/90" strokeWidth={2.5} />
           </span>
         )}
       </span>
-    </motion.button>
+    </div>
   );
 };
 
 // One orbit ring — a single rAF drives all its avatars in perfect sync.
-const Ring = ({
-  index,
-  profiles,
-  cfg,
-  hovered,
-  onHover,
-  onClick,
-  reveal,
-}) => {
-  const paused = orbitSettings.pauseOnHover
-    ? profiles.some((p) => p.id === hovered)
-    : false;
-  const [rotation, setRotation] = useState(0);
+const Ring = ({ index, profiles, cfg, reveal }) => {
+  const rotationRef = useRef(0);
+  const groupRef = useRef(null);
   const raf = useRef(0);
   const last = useRef(null);
 
@@ -174,8 +128,12 @@ const Ring = ({
       if (last.current == null) last.current = t;
       const dt = (t - last.current) / 1000;
       last.current = t;
-      if (!paused) {
-        setRotation((r) => (r + (dt * 360) / cfg.duration) % 360);
+      rotationRef.current =
+        (rotationRef.current + (dt * 360) / cfg.duration) % 360;
+      if (groupRef.current) {
+        groupRef.current.style.transform = `rotate(${
+          rotationRef.current * cfg.direction
+        }deg)`;
       }
       raf.current = requestAnimationFrame(step);
     };
@@ -185,7 +143,7 @@ const Ring = ({
       cancelAnimationFrame(raf.current);
       last.current = null;
     };
-  }, [reveal, paused, cfg.duration]);
+  }, [reveal, cfg.duration, cfg.direction]);
 
   const r = cfg.diameter / 2 - 1;
   const c = 2 * Math.PI * r;
@@ -197,7 +155,7 @@ const Ring = ({
       style={{ width: cfg.diameter, height: cfg.diameter }}
       data-testid={`galaxy-ring-${index}`}
     >
-      {/* Ring stroke (SVG) — pointer-events-none */}
+      {/* Ring stroke (SVG) */}
       <svg
         aria-hidden="true"
         width={cfg.diameter}
@@ -205,7 +163,13 @@ const Ring = ({
         className="absolute inset-0 overflow-visible pointer-events-none"
       >
         <defs>
-          <linearGradient id={`ring-grad-${index}`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <linearGradient
+            id={`ring-grad-${index}`}
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="100%"
+          >
             <stop offset="0%" stopColor="rgba(255,255,255,0.02)" />
             <stop offset="45%" stopColor="rgba(255,255,255,0.35)" />
             <stop offset="55%" stopColor="rgba(255,255,255,0.15)" />
@@ -230,12 +194,10 @@ const Ring = ({
         />
       </svg>
 
-      {/* Avatars — inherit rotation from ring. Container is pointer-events-none
-          but each button opts back in via inline style. */}
-      <div className="absolute inset-0 pointer-events-none">
+      {/* Avatars — the whole group rotates together via a single transform. */}
+      <div ref={groupRef} className="absolute inset-0 pointer-events-none">
         {profiles.map((p, i) => {
           const baseAngle = (i / Math.max(profiles.length, 1)) * 360;
-          const angle = baseAngle + rotation * cfg.direction;
           return (
             <motion.div
               key={p.id}
@@ -248,82 +210,12 @@ const Ring = ({
                 ease: [0.16, 1, 0.3, 1],
               }}
             >
-              <Avatar
-                profile={p}
-                angle={angle}
-                radius={radius}
-                isActive={hovered === p.id}
-                onHover={onHover}
-                onClick={onClick}
-              />
+              <Avatar profile={p} angle={baseAngle} radius={radius} />
             </motion.div>
           );
         })}
       </div>
     </div>
-  );
-};
-
-// Hover tooltip (fixed-position, follows hovered profile).
-const Tooltip = ({ profile, position, onClick, onEnter, onLeave }) => {
-  if (!profile) return null;
-  return (
-    <motion.div
-      data-testid="galaxy-tooltip"
-      initial={{ opacity: 0, y: 10, scale: 0.94 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10, scale: 0.94 }}
-      transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}
-      onMouseEnter={onEnter}
-      onMouseLeave={onLeave}
-      className="fixed z-50 -translate-x-1/2 -translate-y-full pb-4"
-      style={{ left: position.x, top: position.y - 4 }}
-    >
-      <div className="rounded-2xl border border-white/[0.1] bg-black/80 backdrop-blur-2xl p-4 w-[280px] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.9),0_0_36px_-14px_rgba(255,255,255,0.35)]">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <img
-              src={profile.avatar}
-              alt=""
-              className="h-11 w-11 rounded-xl object-cover border border-white/10"
-              loading="lazy"
-              draggable={false}
-            />
-            <span className="absolute -bottom-1 -right-1 rounded-full bg-[#050505] border border-white/10 p-[2px]">
-              <BadgeCheck className="h-3 w-3 text-white/90" strokeWidth={2.5} />
-            </span>
-          </div>
-          <div className="min-w-0">
-            <div className="text-white text-sm font-medium tracking-tight truncate">
-              {profile.name || profile.username}
-            </div>
-            <div className="text-white/50 text-[11px] mt-0.5 truncate font-body">
-              {profile.username} · {profile.followers}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-3 pt-3 border-t border-white/[0.06] grid grid-cols-2 gap-3 font-body">
-          <div>
-            <div className="text-[9px] uppercase tracking-[0.22em] text-white/35">Recovery</div>
-            <div className="text-white/85 text-[12px] mt-1">{profile.recoveryType}</div>
-          </div>
-          <div>
-            <div className="text-[9px] uppercase tracking-[0.22em] text-white/35">Restored</div>
-            <div className="text-white/85 text-[12px] mt-1">{profile.recoveryDate}</div>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={onClick}
-          className="mt-4 w-full group relative inline-flex items-center justify-center gap-2 rounded-full bg-white/[0.05] border border-white/[0.12] hover:border-white/40 px-4 py-2 text-[12px] font-medium text-white overflow-hidden transition-all"
-        >
-          <span className="relative">View recovery proof</span>
-          <ArrowUpRight className="relative h-3.5 w-3.5" strokeWidth={2} />
-        </button>
-      </div>
-    </motion.div>
   );
 };
 
@@ -401,43 +293,44 @@ const GalaxyCore = ({ reveal }) => {
   );
 };
 
-export const RecoveryGalaxy = ({ onOpen }) => {
-  const [hovered, setHovered] = useState(null);
-  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+export const RecoveryGalaxy = () => {
   const containerRef = useRef(null);
   const stageRef = useRef(null);
   const inView = useInView(containerRef, { once: true, amount: 0.2 });
 
-  // Hover-intent
-  const hoverTimer = useRef(null);
-  const setHoveredIntent = (id) => {
-    if (hoverTimer.current) {
-      clearTimeout(hoverTimer.current);
-      hoverTimer.current = null;
-    }
-    if (id === null) {
-      hoverTimer.current = setTimeout(
-        () => setHovered(null),
-        orbitSettings.hoverIntentDelayMs
-      );
-    } else {
-      setHovered(id);
-    }
-  };
-  const cancelHoverClear = () => {
-    if (hoverTimer.current) {
-      clearTimeout(hoverTimer.current);
-      hoverTimer.current = null;
-    }
-  };
-
   // Distribute profiles across rings
-  const ringProfiles = useMemo(
-    () => distributeProfiles(recoveredProfiles),
-    []
-  );
+  const ringProfiles = distributeProfiles(recoveredProfiles);
 
-  // 3D tilt via mouse (throttled with rAF)
+  // Responsive orbit scaling: uniformly scale the whole galaxy so the outer
+  // ring always fits the available width on phones/tablets, keeping the orbit
+  // perfectly proportional and centered. Desktop (>=1024px) stays unchanged.
+  const OUTER_CONTENT = RING_DEFS[2].diameter + 72; // outer ring + avatar allowance
+  const [layout, setLayout] = useState({ scale: 1, height: null });
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const compute = () => {
+      const w = el.clientWidth;
+      const isDesktop = window.innerWidth >= 1024;
+      if (isDesktop || !w) {
+        setLayout({ scale: 1, height: null });
+        return;
+      }
+      const scale = Math.max(0.32, Math.min(1, (w * 0.98) / OUTER_CONTENT));
+      const height = Math.round(OUTER_CONTENT * scale + 32);
+      setLayout({ scale, height });
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(el);
+    window.addEventListener("resize", compute);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", compute);
+    };
+  }, [OUTER_CONTENT]);
+
+  // Ambient 3D tilt via mouse (premium movement, no click interaction).
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
   const sx = useSpring(mx, { stiffness: 55, damping: 22, mass: 0.5 });
@@ -480,28 +373,6 @@ export const RecoveryGalaxy = ({ onOpen }) => {
     };
   }, [mx, my]);
 
-  // Tooltip position tracking
-  useEffect(() => {
-    if (!hovered) return;
-    const el = document.querySelector(
-      `[data-testid="galaxy-profile-${hovered}"]`
-    );
-    if (!el) return;
-    let raf = 0;
-    const update = () => {
-      const rect = el.getBoundingClientRect();
-      setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top });
-      raf = requestAnimationFrame(update);
-    };
-    update();
-    return () => cancelAnimationFrame(raf);
-  }, [hovered]);
-
-  const hoveredProfile = useMemo(
-    () => (hovered ? recoveredProfiles.find((p) => p.id === hovered) : null),
-    [hovered]
-  );
-
   return (
     <section
       id="galaxy"
@@ -523,8 +394,8 @@ export const RecoveryGalaxy = ({ onOpen }) => {
             <span className="text-white/50">we quietly rewrote.</span>
           </h2>
           <p className="mt-6 text-white/50 text-[15px] leading-[1.75] font-body">
-            Hover a profile to pause its orbit. Click to open a verified
-            recovery testimonial.
+            Hundreds of verified identities — recovered, restored, and quietly
+            returned to their owners.
           </p>
         </div>
 
@@ -533,7 +404,9 @@ export const RecoveryGalaxy = ({ onOpen }) => {
           className="relative mx-auto w-full"
           style={{
             perspective: "1400px",
-            height: "clamp(560px, 68vw, 860px)",
+            height: layout.height
+              ? `${layout.height}px`
+              : "clamp(560px, 68vw, 860px)",
           }}
         >
           <motion.div
@@ -541,6 +414,7 @@ export const RecoveryGalaxy = ({ onOpen }) => {
             style={{
               rotateX: rotX,
               rotateY: rotY,
+              scale: layout.scale,
               transformStyle: "preserve-3d",
             }}
           >
@@ -557,9 +431,6 @@ export const RecoveryGalaxy = ({ onOpen }) => {
                     index={ringIndex}
                     profiles={ringProfiles[ringIndex]}
                     cfg={RING_DEFS[ringIndex]}
-                    hovered={hovered}
-                    onHover={setHoveredIntent}
-                    onClick={onOpen}
                     reveal={inView}
                   />
                 </div>
@@ -576,10 +447,7 @@ export const RecoveryGalaxy = ({ onOpen }) => {
       </div>
 
       {/* Ambient background aura */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-      >
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
         <div
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[70rem] w-[70rem] rounded-full blur-3xl opacity-30"
           style={{
@@ -595,14 +463,6 @@ export const RecoveryGalaxy = ({ onOpen }) => {
           }}
         />
       </div>
-
-      <Tooltip
-        profile={hoveredProfile}
-        position={tooltipPos}
-        onClick={() => hoveredProfile && onOpen(hoveredProfile)}
-        onEnter={cancelHoverClear}
-        onLeave={() => setHoveredIntent(null)}
-      />
     </section>
   );
 };

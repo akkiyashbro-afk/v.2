@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "@/App.css";
 import Nav from "@/components/Nav";
 import PreHeroLoading from "@/components/PreHeroLoading";
@@ -12,12 +12,19 @@ import CTA from "@/components/CTA";
 import Footer from "@/components/Footer";
 import GlassPopup from "@/components/GlassPopup";
 import RecoveryAppealModal from "@/components/RecoveryAppealModal";
+import GlobalBackground from "@/components/GlobalBackground";
 import { recoveredProfiles } from "@/data/recoveredProfiles";
 
 function App() {
   const [activeIndex, setActiveIndex] = useState(null);
   const [loaded, setLoaded] = useState(false);
   const [appealOpen, setAppealOpen] = useState(false);
+
+  // Safety net: always reveal content even if the intro callback is missed.
+  useEffect(() => {
+    const t = setTimeout(() => setLoaded(true), 4800);
+    return () => clearTimeout(t);
+  }, []);
 
   const profile = useMemo(
     () => (activeIndex == null ? null : recoveredProfiles[activeIndex]),
@@ -50,18 +57,19 @@ function App() {
   return (
     <div
       data-testid="app-root"
-      className="relative min-h-screen bg-[#050505] text-white antialiased selection:bg-white/20 selection:text-white"
+      className="relative min-h-screen text-white antialiased selection:bg-white/20 selection:text-white overflow-x-hidden"
     >
+      <GlobalBackground active={loaded} />
       <PreHeroLoading onComplete={() => setLoaded(true)} />
       <MouseSpotlight />
       <Nav onOpenAppeal={openAppeal} />
 
       <main
-        className={loaded ? "opacity-100" : "opacity-0"}
+        className={`relative z-10 ${loaded ? "opacity-100" : "opacity-0"}`}
         style={{ transition: "opacity 700ms ease" }}
       >
         <Hero onOpenAppeal={openAppeal} />
-        <RecoveryGalaxy onOpen={openProfile} />
+        <RecoveryGalaxy />
         <Playbook />
         <ReviewWall onOpen={openProfile} />
         <TrustBand />

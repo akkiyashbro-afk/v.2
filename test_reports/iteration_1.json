@@ -1,0 +1,64 @@
+{
+  "summary": "Frontend-only regression test for WinsAble scoped changes: (1) mobile/tablet glass hamburger + slide-down menu, (2) responsive Recovery Galaxy scaling. All requested behaviors verified across viewports 390 (mobile), 820 (tablet), 1280 (desktop). 100% of assertions pass.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_1.json"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Nav.jsx: mobile-menu container has classes 'lg:hidden absolute left-0 right-0'. Because it is absolutely positioned inside the header (which is w=min(96%,1200px) centered), the menu correctly spans the width of the header pill. Good.",
+    "Nav.jsx: header centered via 'inset-x-0 mx-auto' after previous framer-motion x-transform fix — confirmed nav is centered on desktop (x=40, width=1200, center_offset=0.0 in a 1280 viewport).",
+    "RecoveryGalaxy.jsx: ResizeObserver-based scale approach works well; outer ring fits within viewport at 390 (width=298.3 in 390vw) and 820 (width=645 in 820vw), unscaled at 1280 (width=758px, close to configured ~750). Core stays centered at all breakpoints.",
+    "Nav.jsx: pointerdown outside handler closes menu — verified via backdrop click, works because backdrop is portaled to body (outside header). Consider that any tap on page (e.g. content behind backdrop) would also close, but backdrop covers everything so this is fine.",
+    "RecoveryGalaxy Avatar: 'pointer-events-none' set on the avatar wrapper — confirmed via getComputedStyle. Galaxy is visual-only as requested."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "100%"},
+  "test_credentials": "N/A - no login",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Landing page has ~5s cinematic intro (data-testid='pre-hero-loading') that must fade out before nav is interactive. LiquidEther WebGL logs harmless 'GPU stall due to ReadPixels' warnings. Appeal modal opens as [role='dialog']; do NOT submit its form (sends real email) — use Escape to close.",
+  "detailed_results": {
+    "desktop_1280": {
+      "intro_fades_out_within_5s": true,
+      "hamburger_hidden": true,
+      "all_4_desktop_links_visible": true,
+      "nav_horizontally_centered": true,
+      "nav_box": "x=40 width=1200 center_offset=0.0",
+      "no_horizontal_scroll": true,
+      "nav_cta_opens_appeal_modal": true,
+      "galaxy_ring2_width_px": 758.3,
+      "galaxy_core_center_px": 640.0
+    },
+    "mobile_390": {
+      "hamburger_visible_and_on_screen": true,
+      "desktop_links_hidden": true,
+      "logo_visible_top_left": true,
+      "no_horizontal_scroll": true,
+      "menu_opens_with_4_links_cta_backdrop": true,
+      "closes_on_escape": true,
+      "closes_on_backdrop_click": true,
+      "closes_on_link_click": true,
+      "mobile_cta_opens_appeal_modal": true,
+      "galaxy_ring2_x_to_right": "45.8 to 344.2 (fits within 390)",
+      "galaxy_core_center_px": 195.0
+    },
+    "tablet_820": {
+      "hamburger_visible": true,
+      "desktop_links_hidden": true,
+      "no_horizontal_scroll": true,
+      "galaxy_ring2_x_to_right": "87.3 to 732.7 (fits within 820)",
+      "galaxy_core_center_px": 410.0
+    },
+    "galaxy_visual_only": {
+      "profiles_pointer_events_none": true
+    }
+  }
+}
