@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import Aurora from "./Aurora";
 import Particles from "./Particles";
 import { galaxyStats } from "../data/recoveredProfiles";
@@ -75,12 +75,33 @@ export const Hero = ({ onOpenAppeal }) => {
           >
             <motion.div
               variants={line}
-              className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 mb-10 backdrop-blur-xl"
+              className="inline-flex items-center gap-2.5 rounded-full border border-white/[0.1] bg-white/[0.04] px-4 py-2 mb-10 backdrop-blur-xl"
+              style={{
+                boxShadow:
+                  "0 0 24px -8px rgba(52,211,153,0.35), inset 0 1px 0 rgba(255,255,255,0.08)",
+              }}
               data-testid="hero-eyebrow"
             >
-              <Sparkles className="h-3.5 w-3.5 text-white/70" strokeWidth={1.9} />
-              <span className="text-[10px] uppercase tracking-[0.3em] text-white/70 font-body font-medium">
-                Foundation Edition · v2
+              <span
+                className="relative flex h-2 w-2"
+                data-testid="trust-badge-dot"
+              >
+                <motion.span
+                  className="absolute inline-flex h-full w-full rounded-full bg-emerald-400"
+                  animate={{ opacity: [0.9, 0.2, 0.9], scale: [1, 1.7, 1] }}
+                  transition={{
+                    duration: 2.6,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+                <span
+                  className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400"
+                  style={{ boxShadow: "0 0 8px 1px rgba(52,211,153,0.7)" }}
+                />
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.28em] text-white/75 font-body font-medium">
+                Trusted Social Media Experts
               </span>
             </motion.div>
 

@@ -1,19 +1,45 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import LiquidEther from "./LiquidEther/LiquidEther";
 
 // Stable color identity (array identity must not change or LiquidEther re-inits).
 const COLORS = ["#ff3b30", "#7c3aed", "#2563eb", "#22d3ee"];
 
-// Classify the device into a performance tier and derive LiquidEther settings.
-// - Respects prefers-reduced-motion (renders a static ambient instead of the sim).
-// - Reduces resolution / intensity on tablet + mobile.
-// - Further reduces quality on low-end devices (few cores / low memory).
+// ---------------------------------------------------------------------------
+// Capability detection
+// ---------------------------------------------------------------------------
+function detectWebGL() {
+  if (typeof window === "undefined") return false;
+  try {
+    const c = document.createElement("canvas");
+    return !!(
+      window.WebGLRenderingContext &&
+      (c.getContext("webgl2") ||
+        c.getContext("webgl") ||
+        c.getContext("experimental-webgl"))
+    );
+  } catch {
+    return false;
+  }
+}
+
+// iOS / iPadOS Safari cannot reliably render to the float textures the
+// LiquidEther fluid simulation depends on, which leaves the background blank
+// or broken. Detect Apple touch devices (incl. iPadOS reporting as "MacIntel")
+// so we can serve the animated Aurora fallback instead.
+function isAppleTouchDevice() {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  const iOS = /iPad|iPhone|iPod/.test(ua);
+  const iPadOS =
+    navigator.platform === "MacIntel" && (navigator.maxTouchPoints || 0) > 1;
+  return iOS || iPadOS;
+}
+
 function computeConfig() {
   if (typeof window === "undefined") return { disabled: true, tier: "ssr" };
 
-  const reduce = window.matchMedia(
-    "(prefers-reduced-motion: reduce)"
-  ).matches;
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (reduce) return { disabled: true, tier: "reduced" };
 
   const w = window.innerWidth;
@@ -24,7 +50,6 @@ function computeConfig() {
   const mem = navigator.deviceMemory || 8;
   const lowEnd = cores <= 4 || mem <= 4;
 
-  // Desktop defaults (as specified in the brief).
   let resolution = 0.5;
   let autoIntensity = 2.1;
   let cursorSize = 100;
@@ -61,14 +86,97 @@ function computeConfig() {
   };
 }
 
-// Full-screen ambient liquid background.
-// - fixed, behind every section (z-0)
-// - never captures pointer/scroll (pointer-events: none)
-// - subtle dark overlay preserves the #050505 identity + text readability
+// ---------------------------------------------------------------------------
+// Error boundary — if LiquidEther throws while initialising WebGL, swap to the
+// Aurora fallback so the background is never blank.
+// ---------------------------------------------------------------------------
+class LiquidBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(err) {
+    console.warn("LiquidEther failed, using Aurora fallback:", err?.message);
+    this.props.onError && this.props.onError();
+  }
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Animated Aurora fallback — lightweight, GPU-friendly drifting colour blobs
+// using the same brand palette so the premium look is preserved everywhere.
+// ---------------------------------------------------------------------------
+const FALLBACK_BLOBS = [
+  {
+    bg: "radial-gradient(circle at center, rgba(37,99,235,0.30), transparent 60%)",
+    style: { top: "-12%", left: "-8%", width: "62vw", height: "62vw" },
+    x: [0, 40, -20, 0],
+    y: [0, -30, 25, 0],
+    dur: 26,
+  },
+  {
+    bg: "radial-gradient(circle at center, rgba(124,58,237,0.26), transparent 60%)",
+    style: { bottom: "-14%", right: "-8%", width: "58vw", height: "58vw" },
+    x: [0, -35, 20, 0],
+    y: [0, 25, -20, 0],
+    dur: 32,
+  },
+  {
+    bg: "radial-gradient(circle at center, rgba(34,211,238,0.20), transparent 60%)",
+    style: { top: "18%", right: "6%", width: "44vw", height: "44vw" },
+    x: [0, -25, 30, 0],
+    y: [0, 30, -15, 0],
+    dur: 36,
+  },
+  {
+    bg: "radial-gradient(circle at center, rgba(255,59,48,0.16), transparent 60%)",
+    style: { bottom: "12%", left: "10%", width: "40vw", height: "40vw" },
+    x: [0, 30, -25, 0],
+    y: [0, -25, 20, 0],
+    dur: 40,
+  },
+];
+
+const AuroraFallback = () => (
+  <div
+    className="absolute inset-0 overflow-hidden"
+    data-testid="aurora-fallback"
+  >
+    {FALLBACK_BLOBS.map((b, i) => (
+      <motion.div
+        key={i}
+        className="absolute rounded-full"
+        style={{ ...b.style, background: b.bg, filter: "blur(70px)" }}
+        animate={{ x: b.x, y: b.y }}
+        transition={{
+          duration: b.dur,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+    ))}
+  </div>
+);
+
+// ---------------------------------------------------------------------------
+// Global ambient background
+// ---------------------------------------------------------------------------
 export const GlobalBackground = ({ active = true }) => {
   const [config, setConfig] = useState(() => computeConfig());
+  const [forceFallback, setForceFallback] = useState(false);
 
-  // Re-evaluate the tier only when it actually changes (avoids needless re-inits).
+  // Decide once whether this device should use the Aurora fallback.
+  const preferFallback = useMemo(
+    () => !detectWebGL() || isAppleTouchDevice(),
+    []
+  );
+
   useEffect(() => {
     let raf = 0;
     const onResize = () => {
@@ -91,25 +199,30 @@ export const GlobalBackground = ({ active = true }) => {
     };
   }, []);
 
+  const useAurora = active && !config.disabled && (preferFallback || forceFallback);
+
   const liquid = useMemo(() => {
-    if (config.disabled || !active) return null;
+    if (config.disabled || !active || preferFallback || forceFallback)
+      return null;
     return (
-      <LiquidEther
-        key={config.tier}
-        style={{ width: "100%", height: "100%" }}
-        mouseForce={config.mouseForce}
-        cursorSize={config.cursorSize}
-        isViscous={false}
-        viscous={30}
-        colors={COLORS}
-        autoDemo
-        autoSpeed={config.autoSpeed}
-        autoIntensity={config.autoIntensity}
-        isBounce
-        resolution={config.resolution}
-      />
+      <LiquidBoundary onError={() => setForceFallback(true)}>
+        <LiquidEther
+          key={config.tier}
+          style={{ width: "100%", height: "100%" }}
+          mouseForce={config.mouseForce}
+          cursorSize={config.cursorSize}
+          isViscous={false}
+          viscous={30}
+          colors={COLORS}
+          autoDemo
+          autoSpeed={config.autoSpeed}
+          autoIntensity={config.autoIntensity}
+          isBounce
+          resolution={config.resolution}
+        />
+      </LiquidBoundary>
     );
-  }, [config, active]);
+  }, [config, active, preferFallback, forceFallback]);
 
   return (
     <div
@@ -128,6 +241,9 @@ export const GlobalBackground = ({ active = true }) => {
           }}
         />
       )}
+
+      {/* Animated Aurora fallback (iOS/iPadOS Safari, no-WebGL, or on error). */}
+      {useAurora && <AuroraFallback />}
 
       {/* Interactive liquid layer */}
       {liquid && <div className="absolute inset-0">{liquid}</div>}

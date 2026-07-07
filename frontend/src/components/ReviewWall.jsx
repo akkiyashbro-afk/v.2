@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { BadgeCheck, Quote, Star } from "lucide-react";
 import { recoveredProfiles } from "../data/recoveredProfiles";
@@ -109,7 +109,24 @@ const Column = ({ items, direction, onClick, paused }) => {
 export const ReviewWall = ({ onOpen }) => {
   const [paused, setPaused] = useState(false);
   const items = useMemo(() => buildWallItems(), []);
-  const columns = useMemo(() => chunk(items, 4), [items]);
+
+  // Responsive column count: 2 (phone) / 3 (tablet) / 4 (desktop — unchanged).
+  const [cols, setCols] = useState(() => {
+    if (typeof window === "undefined") return 4;
+    const w = window.innerWidth;
+    return w < 640 ? 2 : w < 1024 ? 3 : 4;
+  });
+  useEffect(() => {
+    const onResize = () => {
+      const w = window.innerWidth;
+      setCols(w < 640 ? 2 : w < 1024 ? 3 : 4);
+    };
+    onResize();
+    window.addEventListener("resize", onResize, { passive: true });
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const columns = useMemo(() => chunk(items, cols), [items, cols]);
 
   return (
     <section
@@ -142,8 +159,9 @@ export const ReviewWall = ({ onOpen }) => {
           data-testid="review-masonry-grid"
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
-          className="relative h-[720px] grid grid-cols-2 lg:grid-cols-4 gap-5"
+          className="relative grid gap-4 sm:gap-5 h-[560px] sm:h-[640px] lg:h-[720px]"
           style={{
+            gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
             maskImage:
               "linear-gradient(to bottom, transparent, black 12%, black 88%, transparent)",
             WebkitMaskImage:

@@ -39,10 +39,10 @@ export const PreHeroLoading = ({ onComplete }) => {
       {visible && (
         <motion.div
           data-testid="pre-hero-loading"
-          initial={{ opacity: 1 }}
+          initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.7, ease: "easeInOut" }}
+          transition={{ duration: 0.6, ease: "easeInOut" }}
           className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505] overflow-hidden"
         >
           <motion.div
