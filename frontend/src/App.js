@@ -1,0 +1,113 @@
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import "@/App.css";
+import Nav from "@/components/Nav";
+import PreHeroLoading from "@/components/PreHeroLoading";
+import MouseSpotlight from "@/components/MouseSpotlight";
+import Hero from "@/components/Hero";
+import RecoveryGalaxy from "@/components/RecoveryGalaxy";
+import ReviewWall from "@/components/ReviewWall";
+import Playbook from "@/components/Playbook";
+import TrustBand from "@/components/TrustBand";
+import CTA from "@/components/CTA";
+import Footer from "@/components/Footer";
+import GlassPopup from "@/components/GlassPopup";
+import RecoveryAppealModal from "@/components/RecoveryAppealModal";
+import GlobalBackground from "@/components/GlobalBackground";
+import { recoveredProfiles } from "@/data/recoveredProfiles";
+import Terms from "@/pages/Terms";
+import Privacy from "@/pages/Privacy";
+import Disclosures from "@/pages/Disclosures";
+
+function HomePage() {
+  const [activeIndex, setActiveIndex] = useState(null);
+  const [loaded, setLoaded] = useState(false);
+  const [appealOpen, setAppealOpen] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setLoaded(true), 4800);
+    return () => clearTimeout(t);
+  }, []);
+
+  const profile = useMemo(
+    () => (activeIndex == null ? null : recoveredProfiles[activeIndex]),
+    [activeIndex]
+  );
+
+  const openProfile = useCallback((p) => {
+    const idx = recoveredProfiles.findIndex((x) => x.id === p.id);
+    setActiveIndex(idx === -1 ? 0 : idx);
+  }, []);
+
+  const close = useCallback(() => setActiveIndex(null), []);
+
+  const next = useCallback(() => {
+    setActiveIndex((i) =>
+      i == null ? 0 : (i + 1) % recoveredProfiles.length
+    );
+  }, []);
+  const prev = useCallback(() => {
+    setActiveIndex((i) =>
+      i == null
+        ? 0
+        : (i - 1 + recoveredProfiles.length) % recoveredProfiles.length
+    );
+  }, []);
+
+  const openAppeal = useCallback(() => setAppealOpen(true), []);
+  const closeAppeal = useCallback(() => setAppealOpen(false), []);
+
+  return (
+    <>
+      <GlobalBackground active={loaded} />
+      <PreHeroLoading onComplete={() => setLoaded(true)} />
+      <MouseSpotlight />
+      <Nav onOpenAppeal={openAppeal} />
+
+      <main
+        className={`relative z-10 ${loaded ? "opacity-100" : "opacity-0"}`}
+        style={{ transition: "opacity 700ms ease" }}
+      >
+        <Hero onOpenAppeal={openAppeal} />
+        <RecoveryGalaxy />
+        <Playbook />
+        <ReviewWall onOpen={openProfile} />
+        <TrustBand />
+        <CTA onOpenAppeal={openAppeal} />
+        <Footer />
+      </main>
+
+      <GlassPopup
+        profile={profile}
+        onClose={close}
+        onNext={next}
+        onPrev={prev}
+        onStartRecovery={() => {
+          close();
+          openAppeal();
+        }}
+      />
+      <RecoveryAppealModal open={appealOpen} onClose={closeAppeal} />
+    </>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <div
+        data-testid="app-root"
+        className="relative min-h-screen text-white antialiased selection:bg-white/20 selection:text-white overflow-x-hidden"
+      >
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/disclosures" element={<Disclosures />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
+  );
+}
+
+export default App;

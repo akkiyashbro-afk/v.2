@@ -1,0 +1,144 @@
+{
+  "project_name": "WinsAble V2",
+  "theme_and_archetype": {
+    "theme": "Dark",
+    "archetype": "Archetype 4 (Swiss & High-Contrast) + Archetype 5 (Luxury) Hybrid",
+    "description": "A premium digital identity recovery platform aiming for an Apple x Vercel x Linear aesthetic. Deep blacks, glowing neon accents, and hyper-smooth animations.",
+    "tone": "Authoritative, Trustworthy, Premium, Cutting-edge"
+  },
+  "color_palette": {
+    "background": "#050505",
+    "surface": "#0D0D0D",
+    "surface_glassmorphism": "rgba(13, 13, 13, 0.65)",
+    "text_primary": "#FAFAFA",
+    "text_secondary": "#A1A1AA",
+    "accent_primary": "#007AFF",
+    "accent_secondary_glow": "#9333EA",
+    "border_subtle": "rgba(255, 255, 255, 0.08)",
+    "border_highlight": "rgba(255, 255, 255, 0.15)"
+  },
+  "typography": {
+    "primary_heading": {
+      "font_family": "Satoshi, Outfit, or Cabinet Grotesk (sans-serif)",
+      "weight": "font-bold to font-black",
+      "tracking": "tracking-tighter",
+      "max_size": "text-5xl lg:text-6xl (Do not exceed text-6xl for hero)"
+    },
+    "body_text": {
+      "font_family": "Manrope or Inter (sans-serif)",
+      "weight": "font-normal to font-medium",
+      "tracking": "tracking-normal",
+      "line_height": "leading-relaxed"
+    },
+    "labels": {
+      "style": "uppercase text-xs tracking-[0.2em] text-zinc-400 font-semibold"
+    }
+  },
+  "layout_and_spacing": {
+    "container_padding": "px-6 md:px-12 lg:px-24",
+    "section_spacing": "py-24 md:py-32",
+    "border_radius": "rounded-2xl to rounded-3xl for large surfaces, rounded-full for buttons",
+    "glass_effect": "backdrop-blur-xl bg-black/40 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
+  },
+  "animations_and_interactions": {
+    "global_rules": {
+      "performance": "Target 60 FPS using transform and opacity for transitions.",
+      "accessibility": "Respect prefers-reduced-motion using Tailwind motion-safe and motion-reduce classes."
+    },
+    "effects": {
+      "particles": "react-tsparticles for subtle floating ambient dust in the background.",
+      "aurora": "CSS radial gradients using absolute positioning, low opacity (10-20%), and heavy blur (blur-3xl). Colors: #007AFF and #9333EA.",
+      "mouse_spotlight": "framer-motion to track mouse position and render a soft radial gradient on hoverable surfaces.",
+      "cinematic_zoom": "Hero section scales down from 1.05 to 1.0 over 2 seconds with ease-out on load."
+    }
+  },
+  "components_and_sections": {
+    "PreHeroLoading": {
+      "description": "Cinematic sequence on initial load.",
+      "flow": "Pitch black -> fade in logo -> particles emerge -> aurora glows -> tagline 'Protecting What You Built' types out -> cinematic zoom scales down to reveal Hero."
+    },
+    "Hero": {
+      "layout": "Center-aligned content with generous negative space.",
+      "typography": "Large emotional headline (text-6xl max), tracking-tighter.",
+      "buttons": "Premium CTAs: Primary is solid #FAFAFA text-black rounded-full hover:scale-105 transition-transform. Secondary is glassmorphism rounded-full.",
+      "reveal": "framer-motion staggering (opacity 0 to 1, y: 20 to 0) for headline, subheadline, and CTAs."
+    },
+    "RecoveryGalaxy": {
+      "layout": "3 concentric orbit rings via CSS keyframes or framer-motion.",
+      "elements": "Profile avatars placed on rings revolving slowly.",
+      "interactions": "Hover pauses rotation -> profile glows -> tooltip appears with verified badge. Click zooms in -> review popup opens."
+    },
+    "ReviewWall": {
+      "layout": "Infinite masonry grid (CSS columns or react-masonry-css) with 3-4 columns.",
+      "animations": "Columns translating vertically in alternating directions using react-fast-marquee or framer-motion.",
+      "interactions": "Clicking a review opens the GlassPopup."
+    },
+    "GlassPopup": {
+      "layout": "Fullscreen fixed modal with heavy glassmorphism (backdrop-blur-2xl bg-black/60).",
+      "navigation": "Supports keyboard (Esc to close, Arrows to navigate) and swipe (framer-motion drag).",
+      "content": "Focuses on the user review, rating, and verified digital identity status."
+    }
+  },
+  "media_urls": {
+    "abstract_backgrounds": [
+      {
+        "url": "https://images.unsplash.com/photo-1713188828899-331a40c4043c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMGRhcmslMjBjaW5lbWF0aWMlMjBlbGVjdHJpYyUyMGJsdWUlMjBsaWdodHxlbnwwfHx8fDE3ODMzMjYyNzd8MA&ixlib=rb-4.1.0&q=85",
+        "category": "hero_aurora_texture",
+        "description": "Electric blue cinematic light lines for aurora background"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1625685553971-222fb25d504a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzd8MHwxfHNlYXJjaHwzfHxhYnN0cmFjdCUyMGRhcmslMjBjaW5lbWF0aWMlMjBlbGVjdHJpYyUyMGJsdWUlMjBsaWdodHxlbnwwfHx8fDE3ODMzMjYyNzd8MA&ixlib=rb-4.1.0&q=85",
+        "category": "abstract_accents",
+        "description": "Blue and white light illustration for section transitions"
+      }
+    ],
+    "avatars": [
+      {
+        "url": "https://images.pexels.com/photos/12396627/pexels-photo-12396627.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "category": "galaxy_avatar",
+        "description": "Professional female portrait for orbit ring"
+      },
+      {
+        "url": "https://images.pexels.com/photos/17685845/pexels-photo-17685845.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "category": "galaxy_avatar",
+        "description": "Professional male portrait for orbit ring"
+      }
+    ],
+    "trust_icons": [
+      {
+        "url": "https://images.unsplash.com/photo-1667202374078-1683eda6b0b6",
+        "category": "security_icon",
+        "description": "Neon light bulb/security element"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1680499661732-3cfae4690e1c",
+        "category": "security_shape",
+        "description": "Abstract 3D glassmorphic shapes for trust section"
+      }
+    ]
+  },
+  "accessibility_and_testing": {
+    "aria_rules": "Use aria-hidden='true' for purely decorative particles and aurora elements. Ensure all popups use role='dialog' and aria-modal='true'.",
+    "focus_states": "focus:ring-2 focus:ring-blue-500 focus:outline-none rounded on all interactive elements.",
+    "test_ids": {
+      "loading_sequence": "pre-hero-loading",
+      "hero_primary_cta": "hero-primary-cta",
+      "hero_secondary_cta": "hero-secondary-cta",
+      "recovery_galaxy_container": "recovery-galaxy",
+      "galaxy_avatar_ring": "galaxy-ring",
+      "galaxy_profile_tooltip": "galaxy-tooltip",
+      "review_wall_masonry": "review-masonry-grid",
+      "review_card": "review-card",
+      "review_fullscreen_popup": "review-glass-popup",
+      "popup_close_button": "popup-close-button",
+      "footer_links": "footer-nav-links"
+    }
+  },
+  "instructions_to_main_agent": {
+    "tech_stack": "React (Create React App), JavaScript (.js NOT .tsx), Tailwind CSS, shadcn/ui, framer-motion, lucide-react",
+    "critical_commands": [
+      "yarn add framer-motion lucide-react react-tsparticles tsparticles react-fast-marquee"
+    ],
+    "implementation_notes": "Prioritize performance for the animations. Do NOT use .tsx files. Use pure CSS or framer-motion for the orbit rings. Map media_urls directly into the respective avatar and background elements. Use glassmorphism heavily as specified in layout_and_spacing."
+  }
+}
